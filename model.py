@@ -2,7 +2,6 @@ import keras
 from keras.models import Model
 from keras.layers import LSTM, Dense, Dropout, Input, TimeDistributed
 from keras.losses import categorical_crossentropy
-from keras.optimizers import Adam
 
 class LSTMModel(Model):
     """baseline LSTM model for classification

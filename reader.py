@@ -1,10 +1,14 @@
 import pandas as pd
 import numpy as np
 import os
+import pickle
 import logging
+import librosa
 from io import StringIO
 
 logging.basicConfig(level=logging.DEBUG)
+with open('./label2idx.pkl', 'rb') as f:
+    label2idx = pickle.load(f)
 
 def get_df(path):
     origin_f = open(path, 'r')
@@ -59,6 +63,35 @@ def slice_sample(feature, label, pieces=20, duration=30):
     labels = np.stack([label[s_idx:e_idx] for s_idx, e_idx in zip(start_idx, end_idx)], 0)
 
     return features, labels
+
+def get_audio2lab(root):
+    #TODO
+    audios = os.listdir(os.path.join(root, 'audio'))
+    labs = os.listdir(os.path.join(root, 'lab'))
+    audio2lab = {}
+    for a, l in zip(audios, labs):
+        audio2lab[a] = l
+    return audio2lab
+
+def load_data(root, pieces=20, duration=30):
+    audio2lab = get_audio2lab(root)
+    features, labels = [], []
+
+    for a, l in audio2lab.items():
+        y, sr = librosa.load(os.path.join(root, 'audio', a))
+        chroma = librosa.feature.chroma_stft(y=y, sr=sr)
+
+        df = get_df(os.path.join(root, 'lab', l))
+        label = get_label(df, chroma, label2idx)
+        pc_features, pc_labels = slice_sample(chroma, label, pieces=20)
+        features.append(pc_features)
+        labels.append(pc_labels)
+    
+    features = np.vstack(features)
+    labels = np.vstack(labels)
+
+    return features, labels
+
 
 if __name__ == "__main__":
     source_dir = './The Beatles/chordlab/The Beatles'
